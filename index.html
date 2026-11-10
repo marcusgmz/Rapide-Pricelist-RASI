@@ -19180,7 +19180,13 @@ function generatePDF(quoterName,clientName,branchData){
     return map[s]||'background:#f3f4f6;color:#374151';
   }
 
-  const costTh = showCost ? '<th style="padding:9px 8px;font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.07em;text-align:right;width:90px;">Cost (PHP)</th>' : '';
+  const costTh = showCost ? '<th style="padding:9px 8px;font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.07em;text-align:right;">Cost (PHP)</th>' : '';
+  // Fixed column plan (% of table width) so the table always fits the page, whichever columns the role sees
+  //             #  PN  Desc Brand Sys Supp Veh Qty Cost Price Amt
+  const colPct = showCost&&showSupplier ? [4,10,12,8.5,11,10,11.5,5,9,9,10]
+               : showCost               ? [4,11,18,9,10,0,15,5,9,9,10]
+               :                          [4,12,22,9,10,0,19,5,0,9,10];
+  const qtCols = colPct.filter(w=>w>0).map(w=>`<col style="width:${w}%">`).join('');
   const costSummary = showCost ? `
     <div style="padding:16px 22px;border-right:1px solid #e9eaef;">
       <div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Total Cost</div>
@@ -19194,7 +19200,7 @@ function generatePDF(quoterName,clientName,branchData){
     const supplierCell = showSupplier ? `<td style="padding:10px 8px;font-size:11px;color:#4b5563;">${item.supplier||'—'}</td>` : '';
     return `<tr style="border-bottom:1px solid #f0f1f5;">
       <td style="padding:10px 8px;text-align:center;"><span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#f0f1f5;font-size:10px;font-weight:700;color:#6b7280;">${idx+1}</span></td>
-      <td style="padding:10px 8px;font-family:'Courier New',monospace;font-size:11px;font-weight:700;color:#111827;white-space:nowrap;">${item.pn||'—'}</td>
+      <td style="padding:10px 8px;font-family:'Courier New',monospace;font-size:11px;font-weight:700;color:#111827;">${item.pn||'—'}</td>
       <td style="padding:10px 8px;">
         <div style="font-size:12px;font-weight:600;color:#111827;line-height:1.4;">${item.name||'—'}</div>
       </td>
@@ -19324,6 +19330,19 @@ table.qt tbody td{color:#3f3f46;font-variant-numeric:tabular-nums;}
 .tot-row.grand-row .tl{color:rgba(255,255,255,.75);}
 .prep-block{border-top-color:#dcdce1;}
 .doc-footer{background:#fafafa;border-top-color:#ececee;}
+/* Fixed table layout: columns keep their planned share of the width, text wraps inside them */
+table.qt{table-layout:fixed;width:100%;}
+table.qt th,table.qt td{overflow-wrap:anywhere;word-break:normal;}
+table.qt thead th,table.qt tbody td{padding-left:6px!important;padding-right:6px!important;}
+table.qt tbody td span:not([style*="border-radius:50%"]){max-width:100%;white-space:normal;padding:2px 5px!important;font-size:9px!important;letter-spacing:0;}
+table.qt tbody td[style*="nowrap"]{font-size:11px!important;}
+table.qt thead th{overflow-wrap:normal;letter-spacing:.03em;}
+@media print{
+  table.qt thead th{font-size:8px;}
+  table.qt tbody td,table.qt tbody td div{font-size:10px!important;}
+  table.qt tbody td[style*="nowrap"]{font-size:10px!important;}
+  table.qt tbody td span:not([style*="border-radius:50%"]){font-size:8px!important;padding:2px 4px!important;}
+}
 @media screen and (max-width:768px){
   body{padding:12px 10px 32px;}
   .toolbar{flex-wrap:wrap;gap:8px;}
@@ -19419,19 +19438,20 @@ table.qt tbody td{color:#3f3f46;font-variant-numeric:tabular-nums;}
   <div class="tbl-wrap">
     <div class="tbl-head-label">Parts &amp; Items</div>
     <table class="qt">
+      <colgroup>${qtCols}</colgroup>
       <thead>
         <tr>
-          <th style="width:30px;" class="c">#</th>
-          <th style="width:110px;">Part Number</th>
+          <th class="c">#</th>
+          <th>Part Number</th>
           <th>Description</th>
-          <th style="width:72px;">Brand</th>
-          <th style="width:80px;">System</th>
-          ${showSupplier?'<th style="width:82px;">Supplier</th>':''}
-          <th style="width:110px;">Vehicle</th>
-          <th style="width:36px;" class="c">Qty</th>
+          <th>Brand</th>
+          <th>System</th>
+          ${showSupplier?'<th>Supplier</th>':''}
+          <th>Vehicle</th>
+          <th class="c">Qty</th>
           ${costTh}
-          <th style="width:88px;" class="r">Price (PHP)</th>
-          <th style="width:96px;" class="r">Amount (PHP)</th>
+          <th class="r">Price (PHP)</th>
+          <th class="r">Amount (PHP)</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
